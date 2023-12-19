@@ -409,4 +409,3 @@ sh4trustl<-lm(trust_l ~ class+age+man+white+rep01+dem01+urban01
              ,data=qoln,na.action=na.omit)
 summary(sh4trustl)
 stargazer(sh4trustc,sh4trustp,sh4trustsc,sh4trustl,title="Results",align=T,column.sep.width="-5pt")
-
