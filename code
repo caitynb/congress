@@ -67,12 +67,7 @@ qoln$objpk01<-rowMeans(with(qoln, cbind(pklawconst01,pkharris01)))
 # subjective political knowledge
 qoln$pksnat<-car::Recode(qoln$percpolknow_1, "1=5;2=4;3=3;4=2;5=1")
 qoln$pksnat01<-std01(qoln$pksnat)
-
-qoln$pkslocal<-car::Recode(qoln$percpolknow_3, "1=5;2=4;3=3;4=2;5=1")
-qoln$pkslocal01<-std01(qoln$pkslocal)
-
-qoln$subjpk01<-rowMeans(with(qoln, cbind(pkslocal01,pksnat01)))
-
+qoln$subjpk01<-qoln$pksnat01
 # party
 qoln$pid01<-Recode(qoln$party.ID, "1=2;2=1;3=NA;4=NA;5=3;6=4;7=NA")
 qoln$pid01<-std01(qoln$pid01)
@@ -190,13 +185,16 @@ h1cons<-glm(consrun01 ~ class+objpk01+subjpk01+vote01+contact01+trust_c+
 summary(h1cons)
 stargazer(h1cons,title="Ambition Logistic Regression",align=T,column.sep.width="-5pt",covariate.labels=c("Class","Objective Knowledge","Subjective Knowledge","Vote","Contact","Trust","Age","Man","White","Republican","Democrat","Urban"),dep.var.labels = "Ambition")
 
+library(sjPlot)
+library(ggplot2)
 # create plot for H1
 h1<-plot_model(h1cons,                                      
                 type = "eff",                           
                 terms = "class",                           
                 colors="blue",                       
                 title="Class and Political Ambition",
-                line.size=1)+
+                line.size=1,
+              transform = "plogis")+
   theme_minimal()+
   xlab("Composite Class Score")+
   ylab("Probability of Considering Running")+
@@ -205,6 +203,17 @@ h1
 ggsave("h1.png", h1,width = 5, height = 5)
 
 plogis(coef(h1cons))
+
+h1m<-plot_model(h1cons,
+                terms = c("class","objpk","subjpk","vote01","contact01","trust_c","age","man","white","rep01","dem01","urban01"),
+                sort.est=F,
+                transform = "plogis",
+                axis.labels = c("Urban","Democrat","Republican","White","Man","Age","Trust","Contact","Vote","Class","Democrat","Urban"),
+                title = "Ambition Logistic Regression",
+                colors="blue")+
+  theme_minimal()
+h1m
+ggsave("h1m.png",h1m,width=5,height=5)
 #H2 - pk
 
 h2pk<-lm(objpk01 ~ class+consrun01+vote01+contact01+trust_c+
@@ -242,6 +251,25 @@ h2b
 ggsave("h2a.png",h2a,width=5,height=5)
 ggsave("h2b.png",h2b,width=5,height=5)
 
+h2am<-plot_model(h2pk,
+                terms = c("class","consrun01","vote01","contact01","trust_c","age","man","white","rep01","dem01","urban01"),
+                sort.est=F,
+                axis.labels = c("Urban","Democrat","Republican","White","Man","Age","Trust","Contact","Vote","Ambition","Class"),
+                title = "Objective Political Knowledge Linear Regression",
+                colors="blue")+
+  theme_minimal()
+h2am
+
+h2bm<-plot_model(h2spk,
+                 terms = c("class","consrun01","vote01","contact01","trust_c","age","man","white","rep01","dem01","urban01"),
+                 sort.est=F,
+                 axis.labels = c("Urban","Democrat","Republican","White","Man","Age","Trust","Contact","Vote","Ambition","Class"),
+                 title = "Subjective Political Knowledge Linear Regression",
+                 colors = "red")+
+  theme_minimal()
+h2bm
+ggsave("h2am.png",h2am,width=5,height=5)
+ggsave("h2bm.png",h2bm,width=5,height=5)
 #H3a - voting
 h3vote<-glm(vote01 ~ class+consrun01+objpk01+subjpk01+trust_c+
               age+man+white+rep01+dem01+urban01,family="binomial",data=qoln)
@@ -277,11 +305,34 @@ h3b<-plot_model(h3contact,
 h3b
 ggsave("h3a.png",h3a,width=5,height=5)
 ggsave("h3b.png",h3b,width=5,height=5)
+
+h3am<-plot_model(h3vote,
+                 terms = c("class","objpk01","subjpk01","consrun01","trust_c","age","man","white","rep01","dem01","urban01"),
+                 sort.est=F,
+                 transform = "plogis",
+                 axis.labels = c("Urban","Democrat","Republican","White","Man","Age","Trust","Subjective Knowledge","Objective Knowledge","Ambition","Class"),
+                 title = "Voting Logistic Regression",
+                 colors = "blue")+
+  theme_minimal()
+h3am
+
+h3bm<-plot_model(h3contact,
+                 terms = c("class","objpk01","subjpk01","consrun01","trust_c","age","man","white","rep01","dem01","urban01"),
+                 sort.est=F,
+                 transform = "plogis",
+                 axis.labels = c("Urban","Democrat","Republican","White","Man","Age","Trust","Subjective Knowledge","Objective Knowledge","Ambition","Class"),
+                 title = "Contacting Politician Logistic Regression",
+                 colors = "red")+
+  theme_minimal()
+h3bm
+ggsave("h3am.png",h3am,width=5,height=5)
+ggsave("h3bm.png",h3bm,width=5,height=5)
 #H4: trust 
 ## congress trust 
 h4trustc<-lm(trust_c ~ class+consrun01+objpk01+subjpk01+vote01+contact01+
                age+man+white+rep01+dem01+urban01,data=qoln,na.action=na.omit)
 summary(h4trustc)
+stargazer(h4trustc,title="Trust Linear Regression",align=T,column.sep.width="-5pt",covariate.labels=c("Class","Ambition","Objective Knowledge","Subjective Knowledge","Vote","Contact","Age","Man","White","Republican","Democrat","Urban"),dep.var.labels = c("Vote","Contact"))
 
 library(sjPlot)
 library(ggplot2)
@@ -297,13 +348,32 @@ h4<-plot_model(h4trustc,
   xlab("Composite Class Score")
 h4
 ggsave("h4.png", h4,width = 5, height = 5)
+
+h4m<-plot_model(h4trustc,
+                 terms = c("class","objpk01","subjpk01","consrun01","vote01","contact01","age","man","white","rep01","dem01","urban01"),
+                 sort.est=F,
+                 axis.labels = c("Urban","Democrat","Republican","White","Man","Age","Contact","Vote","Subjective Knowledge","Objective Knowledge","Ambition","Class"),
+                 title = "Trust Linear Regression",
+                 colors = "blue")+
+  theme_minimal()
+h4m
+ggsave("h4m.png",h4m,width=5,height=5)
 # supplemental models
 #H1 - consider running
 sh1cons<-glm(consrun01 ~ class+age+man+white+rep01+dem01+urban01,family="binomial",data=qoln)
 summary(sh1cons)
 
 stargazer(sh1cons,title="Consider Running Model",align=T,column.sep.width="-5pt")
-
+h1sm<-plot_model(sh1cons,
+                terms = c("class","age","man","white","rep01","dem01","urban01"),
+                sort.est=F,
+                transform = "plogis",
+                axis.labels = c("Urban","Democrat","Republican","White","Man","Age","Class"),
+                title = "Ambition Logistic Regression (Supplemental)")+
+  theme_minimal()+
+  ylim(0,1)
+h1sm
+ggsave("h1sm.png",h1sm,width=5,height=5)
 #H2 - pk
 
 sh2pk<-lm(objpk01 ~ class+age+man+white+rep01+dem01+urban01,data=qoln,na.action=na.omit)
@@ -339,3 +409,4 @@ sh4trustl<-lm(trust_l ~ class+age+man+white+rep01+dem01+urban01
              ,data=qoln,na.action=na.omit)
 summary(sh4trustl)
 stargazer(sh4trustc,sh4trustp,sh4trustsc,sh4trustl,title="Results",align=T,column.sep.width="-5pt")
+
